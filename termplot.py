@@ -20,20 +20,22 @@
 # THE SOFTWARE.
 
 # todo:
-# better X axis (more X values, tick marks)
-# maybe a functions for: grid_to_plot and plot_to_grid
-# legends
+# maybe a functions for:
+# optional axis legends
 
 import subprocess
-import pdb
 
 LINE = 1
 HISTOGRAM = 2
 
 X_AXIS_VALUE_WIDTH = 15
 
+
 class Plot(object):
-    def __init__(self, x, y, plot_type = LINE):
+    def __init__(self, x, y = None, plot_type = LINE):
+        # allow histograms to input a single vector
+        if y is None:
+            y = [1] * len(x)
         # make sure values are sorted by ascending x values
         self.x_values, self.y_values = zip(*sorted(zip(x, y)))
         self._set_tty_size()
@@ -42,7 +44,7 @@ class Plot(object):
         self._set_min_and_max_values()
         self.plot_type = plot_type
         if self.plot_type == HISTOGRAM:
-            self._histogram_my_data()
+            self._histogramize_data()
             self._set_min_and_max_values()
 
         self.canvas = [[' '] * (self.term_width - self.y_axis_width)
@@ -73,7 +75,10 @@ class Plot(object):
             self.term_width = 60
             self.term_height = 17
 
-    def _histogram_my_data(self):
+    def _histogramize_data(self):
+        """Lump our input data into buckets.  Each column is a bucket
+
+        """
         num_buckets = self.term_width - self.y_axis_width
         self.bucket_width = self.span_x / float(num_buckets)
         new_x_values = []
@@ -96,6 +101,12 @@ class Plot(object):
         self._fill_values()
         self._draw()
 
+    def value_to_coords(value):
+        pass
+
+    def coords_to_value(x, y):
+        pass
+
     def _create_axis(self):
         """For now draw every other value on the y axis and 2 endpoint values
         on the x axis because that's easy.
@@ -103,7 +114,8 @@ class Plot(object):
         I am not proud of this...
 
         """
-        # we'll create the y axis from the bottom up because its easier to think about it that way
+        # we'll create the y axis from the bottom up because its
+        # easier to think about it that way
         num_y_steps = self.term_height - self.x_axis_height
         for i in range(num_y_steps):
             if i % 2 == 0 or i == num_y_steps:
@@ -119,28 +131,22 @@ class Plot(object):
 
         # x axis
         overscore = u"\u203E"
-        min_x_str = str(self.min_x)
         max_x_str = str(self.max_x)
 
         x_axis_width = self.term_width - self.y_axis_width
-        num_points = max(2,
-                         x_axis_width / X_AXIS_VALUE_WIDTH)
-        lines = [' ' * self.y_axis_width]
-        values = [' ' * self.y_axis_width]
+        lines = [' ' * (self.y_axis_width - 1), '|']
+        values = [' ' * (self.y_axis_width)]
         x = 0
 
-        # todo, this was a quick hack, turn it into a function and use that elsewhere
-        def value_at_point(x):
-            col_width = self.span_x / x_axis_width
-            return self.min_x + x * col_width
-
+        col_width = self.span_x / x_axis_width
         while x < x_axis_width - 1:
             if x % X_AXIS_VALUE_WIDTH == 0:
-                v = value_at_point(x)
-                if len(str(v)) + x < x_axis_width - 2:
-                    lines.append('|' + (len(str(v))-1) * overscore)
-                    values.append(str(v))
-                    x += len(str(v))
+                v = self.min_x + x * col_width
+                v = str(v)[:12]
+                if len(v) + x < x_axis_width - 2:
+                    lines.append('|' + (len(v)-1) * overscore)
+                    values.append(v)
+                    x += len(v)
                 else:
                     lines.append(overscore)
                     values.append(' ')
@@ -187,11 +193,17 @@ class Plot(object):
 
 if __name__ == '__main__':
     import math
-    xvals, yvals = [], []
-    for i in range(0, 5000, 5):
-        xx = i / 100.0
-        xvals.append(xx)
-        yvals.append(math.sin(xx) * float(i ** 0.5))
-    # xvals = range(100, 2000)
-    # yvals = range(50, 1500)
-    Plot(xvals, yvals, HISTOGRAM)
+    plot_type = HISTOGRAM
+    if plot_type == LINE:
+        xvals, yvals = [], []
+        for i in range(0, 2000, 5):
+            xx = i / 100.0
+            xvals.append(xx)
+            yvals.append(math.sin(xx) * float(i ** 0.5))
+        Plot(xvals, yvals, LINE)
+    else:
+        import random
+        xvals = []
+        for i in range(100000):
+            xvals.append(random.gauss(0, 1.5))
+        Plot(xvals, plot_type=HISTOGRAM)
