@@ -25,9 +25,12 @@
 # legends
 
 import subprocess
+import pdb
 
 LINE = 1
 HISTOGRAM = 2
+
+X_AXIS_VALUE_WIDTH = 15
 
 class Plot(object):
     def __init__(self, x, y, plot_type = LINE):
@@ -64,7 +67,7 @@ class Plot(object):
         """
         try:
             rows, columns = subprocess.check_output(['stty', 'size']).split()
-            self.term_width = int(columns) - 1
+            self.term_width = int(columns) - X_AXIS_VALUE_WIDTH
             self.term_height = int(int(rows) * .75)
         except Exception:
             self.term_width = 60
@@ -72,16 +75,16 @@ class Plot(object):
 
     def _histogram_my_data(self):
         num_buckets = self.term_width - self.y_axis_width
-        bucket_width = self.span_x / float(num_buckets)
+        self.bucket_width = self.span_x / float(num_buckets)
         new_x_values = []
         for i in range(num_buckets):
-            bucket_base_value = self.min_x + i * bucket_width
+            bucket_base_value = self.min_x + i * self.bucket_width
             new_x_values.append(bucket_base_value)
         new_y_values = [0] * num_buckets
         for x_val, y_val in zip(self.x_values, self.y_values):
             which_bucket = min(num_buckets - 1,
                                max(0,
-                                   int((x_val - self.min_x) / float(bucket_width))))
+                                   int((x_val - self.min_x) / float(self.bucket_width))))
             new_y_values[which_bucket] += y_val
 
         self.x_values = new_x_values
@@ -116,14 +119,40 @@ class Plot(object):
 
         # x axis
         overscore = u"\u203E"
-        self.x_axis_canvas.append(' ' * self.y_axis_width +
-                                  overscore * (self.term_width - self.y_axis_width))
         min_x_str = str(self.min_x)
         max_x_str = str(self.max_x)
-        fill = ' ' * (self.term_width -
-                      self.y_axis_width - len(min_x_str) - len(max_x_str))
-        self.x_axis_canvas.append(
-            ' ' * self.y_axis_width + min_x_str + fill + max_x_str)
+
+        x_axis_width = self.term_width - self.y_axis_width
+        num_points = max(2,
+                         x_axis_width / X_AXIS_VALUE_WIDTH)
+        lines = [' ' * self.y_axis_width]
+        values = [' ' * self.y_axis_width]
+        x = 0
+
+        # todo, this was a quick hack, turn it into a function and use that elsewhere
+        def value_at_point(x):
+            col_width = self.span_x / x_axis_width
+            return self.min_x + x * col_width
+
+        while x < x_axis_width - 1:
+            if x % X_AXIS_VALUE_WIDTH == 0:
+                v = value_at_point(x)
+                if len(str(v)) + x < x_axis_width - 2:
+                    lines.append('|' + (len(str(v))-1) * overscore)
+                    values.append(str(v))
+                    x += len(str(v))
+                else:
+                    lines.append(overscore)
+                    values.append(' ')
+                    x += 1
+            else:
+                lines.append(overscore)
+                values.append(' ')
+                x += 1
+        lines += '|'
+        values += max_x_str
+        self.x_axis_canvas.append(''.join(lines))
+        self.x_axis_canvas.append(''.join(values))
 
     def _fill_values(self):
         i = 0
@@ -152,12 +181,14 @@ class Plot(object):
         for row in range(self.x_axis_height):
             print self.x_axis_canvas[row]
         print
+        if self.plot_type == HISTOGRAM:
+            print "Bucketwidth = ", self.bucket_width
 
 
 if __name__ == '__main__':
     import math
     xvals, yvals = [], []
-    for i in range(1, 5000, 5):
+    for i in range(0, 5000, 5):
         xx = i / 100.0
         xvals.append(xx)
         yvals.append(math.sin(xx) * float(i ** 0.5))
