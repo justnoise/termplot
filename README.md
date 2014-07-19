@@ -30,3 +30,4 @@ Bugs and Todo
 * The code is crazy ugly
 * No axis titles
 * No plot title
+* Allow piping of data from stdin
