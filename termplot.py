@@ -24,12 +24,34 @@
 # optional axis legends
 
 import subprocess
-
+import sys
 LINE = 1
 HISTOGRAM = 2
-
 X_AXIS_VALUE_WIDTH = 15
 
+# term_width = 60
+# term_height = 17
+
+# def set_tty_size():
+#     """Mac and linux usually have stty installed, windows users can change
+#     this to use the console module but I don't have a windows
+#     machine to test that.
+
+#     """
+#     global term_width, term_height
+#     try:
+#         terminal_device = subprocess.check_output(['tty'], shell=True).strip()
+#         file_flag = '-F'
+#         if sys.platform == 'darwin':
+#             file_flag = '-f'
+#         rows, columns = subprocess.check_output(
+#             ['stty', file_flag, terminal_device, 'size']).split()
+#         term_width = int(columns) - X_AXIS_VALUE_WIDTH
+#         term_height = int(int(rows) * .75)
+#     except Exception:
+#         term_width = 60
+#         term_height = 17
+#     print term_width, term_height
 
 class Plot(object):
     def __init__(self, x, y = None, plot_type = LINE):
@@ -61,6 +83,7 @@ class Plot(object):
         self.max_y = max(self.y_values)
         self.span_y = self.max_y - self.min_y
 
+
     def _set_tty_size(self):
         """Mac and linux usually have stty installed, windows users can change
         this to use the console module but I don't have a windows
@@ -72,8 +95,10 @@ class Plot(object):
             self.term_width = int(columns) - X_AXIS_VALUE_WIDTH
             self.term_height = int(int(rows) * .75)
         except Exception:
-            self.term_width = 60
-            self.term_height = 17
+            term_width = 60
+            term_height = 17
+        #print term_width, term_height
+
 
     def _histogramize_data(self):
         """Lump our input data into buckets.  Each column is a bucket
@@ -118,7 +143,7 @@ class Plot(object):
         # easier to think about it that way
         num_y_steps = self.term_height - self.x_axis_height
         for i in range(num_y_steps):
-            if i % 2 == 0 or i == num_y_steps:
+            if i % 2 == 0 or i == num_y_steps - 1:
                 val = self.span_y / float(num_y_steps - 1) * i + self.min_y
                 str_val = str(val)[0 : self.y_axis_width - 1]
                 txt = '{:>{field_width}}|'.format(str_val,
@@ -167,7 +192,7 @@ class Plot(object):
         for col in range(canvas_width):
             col_x_val = col * (self.span_x / float(canvas_width)) + self.min_x
             while (i < len(self.x_values) - 2 and
-                   col_x_val > self.x_values[i]):
+                   col_x_val > self.x_values[i+1]):
                 i += 1
             a = self.x_values[i]
             b = self.x_values[i + 1]
@@ -191,9 +216,9 @@ class Plot(object):
             print "Bucketwidth = ", self.bucket_width
 
 
-if __name__ == '__main__':
+def examples():
     import math
-    plot_type = HISTOGRAM
+    plot_type = LINE
     if plot_type == LINE:
         xvals, yvals = [], []
         for i in range(0, 2000, 5):
@@ -207,3 +232,32 @@ if __name__ == '__main__':
         for i in range(100000):
             xvals.append(random.gauss(0, 1.5))
         Plot(xvals, plot_type=HISTOGRAM)
+
+def read_stdin():
+    """Unfinished and should not be called"""
+    def get_plot_type(line):
+        return HISTOGRAM
+    import fileinput
+    xvals = []
+    #yvals = []
+    for i, line in enumerate(fileinput.input()):
+        if i == 0:
+            plot_type = get_plot_type(line)
+        xvals.append(float(line))
+    fileinput.close()
+    Plot(xvals, plot_type=plot_type)
+
+def plot_file(filename):
+    # todo, determine if this is 1 or 2 column data
+    yvals = open(filename).readlines()
+    yvals = map(float, yvals)
+    xvals = range(len(yvals))
+    Plot(xvals, yvals, LINE)
+
+if __name__ == '__main__':
+    filename = None
+    if len(sys.argv) > 1:
+        filename = sys.argv[1]
+        plot_file(filename)
+    else:
+        examples()
