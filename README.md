@@ -6,7 +6,7 @@ Usage
 =====
 ```
 import math
-from termplot import Plot
+from termplot import LINE, Plot
 xvals, yvals = [], []
 for i in range(0, 2000, 5):
     xx = i / 100.0
@@ -18,6 +18,7 @@ Plot(xvals, yvals, LINE)
 
 ```
 import random
+from termplot import HISTOGRAM
 xvals = []
 for i in range(100000):
     xvals.append(random.gauss(0, 1.5))
