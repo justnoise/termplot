@@ -208,12 +208,12 @@ class Plot(object):
     def _draw(self):
         print
         for row in range(self.term_height - self.x_axis_height):
-            print self.y_axis_canvas[row] + ''.join(self.canvas[row])
+            print(self.y_axis_canvas[row] + ''.join(self.canvas[row]))
         for row in range(self.x_axis_height):
-            print self.x_axis_canvas[row]
+            print(self.x_axis_canvas[row])
         print
         if self.plot_type == HISTOGRAM:
-            print "Bucketwidth = ", self.bucket_width
+            print("Bucketwidth = ", self.bucket_width)
 
 
 def examples():
